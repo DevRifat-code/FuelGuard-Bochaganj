@@ -5,7 +5,7 @@ import {
   getUsersByField,
   getUserById,
   type FirestoreUser,
-} from "./firestore"
+} from "./firestore-admin"
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "fuelguard-uno-setabganj-secret-key-2026"
