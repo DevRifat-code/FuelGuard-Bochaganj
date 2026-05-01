@@ -100,8 +100,7 @@ export async function login(username: string, password: string): Promise<{ succe
       fullName: user.fullName,
       phone: user.phone,
       stationId: user.stationId,
-    },
-    token
+    }
   }
 }
 
