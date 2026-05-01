@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/firestore-rest";
+import { getCurrentUser } from "@/lib/auth-mongodb";
 
 export async function GET() {
   try {

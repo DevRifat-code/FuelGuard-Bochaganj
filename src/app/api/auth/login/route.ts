@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { login, getCurrentUser } from "@/lib/firestore-rest"
+import { login } from "@/lib/auth-mongodb"
+import { createSession } from "@/lib/auth-mongodb"
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 401 })
     }
 
-    const token = await import("@/lib/firestore-rest").then(m => m.createSession(result.user!.id))
+    const token = await createSession(result.user.id)
 
     const response = NextResponse.json({ success: true, user: result.user })
     
