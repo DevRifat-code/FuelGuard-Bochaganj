@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { login } from "@/lib/auth"
-import { cookies } from "next/headers"
+import { login, getCurrentUser } from "@/lib/firestore-rest"
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,9 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 401 })
     }
 
-    // Create and set session cookie
-    const { createSession } = await import("@/lib/auth")
-    const token = await createSession(result.user.id!)
+    const token = await import("@/lib/firestore-rest").then(m => m.createSession(result.user!.id))
 
     const response = NextResponse.json({ success: true, user: result.user })
     
@@ -26,7 +23,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
       path: "/",
     })
 
