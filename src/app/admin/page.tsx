@@ -7,17 +7,16 @@ interface Vehicle {
   id: number;
   regNo: string;
   ownerName: string;
-  phone?: string;
-  nid?: string;
-  licenseNo?: string;
-  taxToken?: string;
   vehicleType: string;
+  phone: string;
+  nid: string;
+  licenseNo: string;
+  taxToken?: string;
   passportPhoto?: string;
   nidPhoto?: string;
   licensePhoto?: string;
   taxTokenPhoto?: string;
   createdAt: string;
-  owner?: { username: string; phone?: string } | null;
 }
 
 interface Manager {
@@ -145,23 +144,19 @@ export default function AdminDashboard() {
         {/* Vehicles List */}
         <div className="card p-7">
           <h3 className="font-semibold mb-4 flex items-center gap-2">All Registered Vehicles</h3>
+          <p className="text-xs text-slate-500 mb-2">গাড়ির ওপর ক্লিক করে ডকুমেন্টের ছবিগুলো দেখতে পারবেন (Click row to view documents)</p>
           <div className="overflow-auto max-h-[420px]">
             <table className="table w-full text-sm">
-              <thead><tr><th>Reg No</th><th>Owner</th><th>Type</th><th>Account</th><th>Files</th></tr></thead>
+              <thead><tr><th>Reg No</th><th>Owner</th><th>Type</th><th>Registered</th></tr></thead>
               <tbody>
                 {vehicles.length ? vehicles.map(v => (
-                  <tr key={v.id}>
-                    <td className="font-mono font-medium">{v.regNo}</td>
+                  <tr key={v.id} onClick={() => setSelectedVehicle(v)} className="cursor-pointer hover:bg-slate-50 transition">
+                    <td className="font-mono font-medium text-emerald-700">{v.regNo}</td>
                     <td>{v.ownerName}</td>
                     <td><span className="text-xs px-2 py-0.5 rounded bg-slate-100">{v.vehicleType}</span></td>
-                    <td className="text-xs text-slate-500">{v.owner?.username || "N/A"}</td>
-                    <td>
-                      <button onClick={() => setSelectedVehicle(v)} className="text-emerald-700 hover:underline text-xs font-semibold">
-                        View Files
-                      </button>
-                    </td>
+                    <td className="text-xs text-slate-500">{new Date(v.createdAt).toLocaleDateString()}</td>
                   </tr>
-                )) : <tr><td colSpan={5} className="text-center py-8 text-slate-500">No vehicles yet</td></tr>}
+                )) : <tr><td colSpan={4} className="text-center py-8 text-slate-500">No vehicles yet</td></tr>}
               </tbody>
             </table>
           </div>
@@ -203,51 +198,6 @@ export default function AdminDashboard() {
         </table>
       </div>
 
-      {/* Registration Files Modal */}
-      {selectedVehicle && (
-        <div className="modal">
-          <div className="card max-w-5xl w-full p-8 max-h-[90vh] overflow-auto">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-semibold">Registration Files</h3>
-                <p className="text-slate-600">{selectedVehicle.regNo} • {selectedVehicle.ownerName}</p>
-              </div>
-              <button onClick={() => setSelectedVehicle(null)} className="btn btn-secondary text-sm px-4 py-2">Close</button>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4 mb-6 text-sm bg-slate-50 rounded-2xl p-5">
-              <div><strong>Phone:</strong> {selectedVehicle.phone}</div>
-              <div><strong>NID:</strong> {selectedVehicle.nid}</div>
-              <div><strong>License:</strong> {selectedVehicle.licenseNo}</div>
-              <div><strong>Tax Token:</strong> {selectedVehicle.taxToken || "N/A"}</div>
-              <div><strong>Owner Account:</strong> {selectedVehicle.owner?.username || "N/A"}</div>
-              <div><strong>Registered:</strong> {new Date(selectedVehicle.createdAt).toLocaleString()}</div>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-              {[
-                { label: "Passport Photo", src: selectedVehicle.passportPhoto },
-                { label: "NID Card", src: selectedVehicle.nidPhoto },
-                { label: "Driving License", src: selectedVehicle.licensePhoto },
-                { label: "Tax Token / Reg Card", src: selectedVehicle.taxTokenPhoto },
-              ].map((doc) => (
-                <div key={doc.label} className="border rounded-2xl p-4 bg-white">
-                  <div className="font-semibold text-sm mb-3">{doc.label}</div>
-                  {doc.src ? (
-                    <a href={doc.src} target="_blank" rel="noreferrer" className="block">
-                      <img src={doc.src} alt={doc.label} className="w-full h-48 object-cover rounded-xl border" />
-                      <span className="text-xs text-emerald-700 mt-2 block">Open full file</span>
-                    </a>
-                  ) : (
-                    <div className="h-48 rounded-xl border bg-slate-100 flex items-center justify-center text-xs text-slate-500">No file uploaded</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Add Manager Modal */}
       {showAddManager && (
         <div className="modal">
@@ -273,6 +223,54 @@ export default function AdminDashboard() {
                 <button type="submit" className="btn btn-primary flex-1">Create Manager</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Vehicle Details Modal with Photos */}
+      {selectedVehicle && (
+        <div className="modal">
+          <div className="card max-w-4xl w-full p-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <span className="text-xs uppercase tracking-widest text-emerald-600 font-bold">Vehicle Profile</span>
+                <h3 className="text-3xl font-bold font-mono text-slate-800">{selectedVehicle.regNo}</h3>
+              </div>
+              <button onClick={() => setSelectedVehicle(null)} className="btn btn-secondary text-sm px-4 py-2">Close</button>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-8 border-b pb-6">
+              <div><span className="text-slate-500 text-sm">Owner Name:</span> <span className="font-semibold">{selectedVehicle.ownerName}</span></div>
+              <div><span className="text-slate-500 text-sm">Vehicle Type:</span> <span className="font-semibold uppercase text-xs px-2 py-0.5 bg-slate-100 rounded">{selectedVehicle.vehicleType}</span></div>
+              <div><span className="text-slate-500 text-sm">Phone Number:</span> <span className="font-semibold">{selectedVehicle.phone}</span></div>
+              <div><span className="text-slate-500 text-sm">NID Number:</span> <span className="font-semibold">{selectedVehicle.nid}</span></div>
+              <div><span className="text-slate-500 text-sm">License No:</span> <span className="font-semibold">{selectedVehicle.licenseNo}</span></div>
+              <div><span className="text-slate-500 text-sm">Tax Token No:</span> <span className="font-semibold">{selectedVehicle.taxToken || "N/A"}</span></div>
+            </div>
+
+            <h4 className="font-bold text-lg mb-4 text-slate-700">Uploaded Documents (সংযুক্ত নথিপত্র)</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { key: "passportPhoto", label: "Passport Photo" },
+                { key: "nidPhoto", label: "NID Photo" },
+                { key: "licensePhoto", label: "License Photo" },
+                { key: "taxTokenPhoto", label: "Tax Token" },
+              ].map(({ key, label }) => {
+                const src = selectedVehicle[key as keyof Vehicle] as string;
+                return (
+                  <div key={key} className="border p-2 rounded-xl bg-slate-50 text-center">
+                    <div className="text-xs font-semibold text-slate-600 mb-2">{label}</div>
+                    {src ? (
+                      <img src={src} alt={label} className="w-full h-40 object-cover rounded-lg border hover:scale-105 transition duration-200 cursor-pointer" onClick={() => window.open(src, "_blank")} />
+                    ) : (
+                      <div className="w-full h-40 bg-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs">
+                        Not uploaded
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

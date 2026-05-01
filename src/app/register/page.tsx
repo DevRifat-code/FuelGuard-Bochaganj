@@ -13,12 +13,12 @@ interface FormData {
   vehicleType: "motorcycle" | "motor_vehicle";
   taxToken: string;
   username: string;
-  password: string;
+  password: "";
 }
 
 export default function RegisterVehicle() {
   const router = useRouter();
-  const [form, setForm] = useState<FormData>({
+  const [form, setForm] = useState<any>({
     regNo: "",
     ownerName: "",
     phone: "",
@@ -53,14 +53,8 @@ export default function RegisterVehicle() {
     setLoading(true);
     setError("");
 
-    if (!form.regNo || !form.ownerName || !form.username || !form.password) {
-      setError("Registration number, owner name, username and password are required");
-      setLoading(false);
-      return;
-    }
-
-    if (form.password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (!form.regNo || !form.ownerName) {
+      setError("Registration number and owner name are required");
       setLoading(false);
       return;
     }
@@ -92,7 +86,7 @@ export default function RegisterVehicle() {
   const resetForm = () => {
     setSuccess(null);
     setForm({
-      regNo: "", ownerName: "", phone: "", nid: "", licenseNo: "", vehicleType: "motorcycle", taxToken: "", username: "", password: "",
+      regNo: "", ownerName: "", phone: "", nid: "", licenseNo: "", vehicleType: "motorcycle", taxToken: "",
     });
     setPhotos({ passportPhoto: "", nidPhoto: "", licensePhoto: "", taxTokenPhoto: "" });
   };
@@ -111,7 +105,6 @@ export default function RegisterVehicle() {
               <div className="font-medium">Owner:</div><div>{success.vehicle.ownerName}</div>
               <div className="font-medium">Type:</div><div>{success.vehicle.vehicleType}</div>
               <div className="font-medium">Phone:</div><div>{success.vehicle.phone}</div>
-              <div className="font-medium">Owner Login:</div><div className="font-mono">{success.ownerAccount?.username}</div>
             </div>
           </div>
 
@@ -126,7 +119,7 @@ export default function RegisterVehicle() {
 
           <div className="flex gap-4 justify-center">
             <button onClick={resetForm} className="btn btn-secondary">Register Another Vehicle</button>
-            <button onClick={() => router.push("/login")} className="btn btn-primary">Login & Download Card</button>
+            <button onClick={() => router.push("/login")} className="btn btn-primary">Go to Login</button>
           </div>
         </div>
       </div>
@@ -177,36 +170,19 @@ export default function RegisterVehicle() {
             <label className="block text-sm font-medium mb-1.5">Tax Token / Registration Card Number</label>
             <input type="text" value={form.taxToken} onChange={e => setForm({...form, taxToken: e.target.value})} className="input" />
           </div>
-        </div>
 
-        {/* Owner Account */}
-        <div className="mt-8 border-t pt-8">
-          <h3 className="font-semibold mb-4">Create Owner Account (প্রোফাইল লগইনের জন্য)</h3>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Username *</label>
-              <input
-                type="text"
-                value={form.username}
-                onChange={e => setForm({...form, username: e.target.value.toLowerCase().replace(/\s/g, "")})}
-                placeholder="your_username"
-                className="input"
-                required
-              />
-              <p className="text-xs text-slate-500 mt-1">Use this username to login and download your vehicle card.</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Password *</label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={e => setForm({...form, password: e.target.value})}
-                placeholder="Minimum 6 characters"
-                minLength={6}
-                className="input"
-                required
-              />
-            </div>
+          <div className="border-t pt-6 md:col-span-2">
+            <h3 className="font-semibold text-lg mb-4 text-emerald-800">অ্যাকাউন্ট তৈরি করুন (Create Login Account)</h3>
+            <p className="text-xs text-slate-500 mb-4">লগইন করে আপনার ডিজিটাল প্রোফাইল এবং কিউআর কোড দেখতে ও ডাউনলোড করতে পারবেন।</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Username (ব্যবহারকারীর নাম) *</label>
+            <input type="text" value={form.username} onChange={e => setForm({...form, username: e.target.value.toLowerCase()})} placeholder="e.g. karim4521" className="input" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Password (পাসওয়ার্ড) *</label>
+            <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="••••••••" className="input" required />
           </div>
         </div>
 

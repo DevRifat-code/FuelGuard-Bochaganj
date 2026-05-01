@@ -1,34 +1,40 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { vehicles } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import QRCode from "qrcode";
 import { getCurrentUser } from "@/lib/auth";
+import { checkEligibility } from "@/lib/fuel";
+import QRCode from "qrcode";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user || user.role !== "owner") {
-    return NextResponse.json({ error: "Owner login required" }, { status: 401 });
+  if (!user || user.role !== "user") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const ownedVehicles = await db.query.vehicles.findMany({
-    where: eq(vehicles.ownerUserId, user.id),
-    with: {
-      fuelLogs: {
-        with: { station: true },
-      },
-    },
-  });
+  try {
+    const vehicle = await db.query.vehicles.findFirst({
+      where: eq(vehicles.id, user.id),
+    });
 
-  const vehiclesWithQr = await Promise.all(
-    ownedVehicles.map(async (vehicle) => ({
-      ...vehicle,
-      qrCodeUrl: await QRCode.toDataURL(vehicle.qrCodeData || JSON.stringify({ regNo: vehicle.regNo }), {
-        width: 260,
-        margin: 1,
-      }),
-    }))
-  );
+    if (!vehicle) {
+      return NextResponse.json({ error: "Vehicle record missing" }, { status: 404 });
+    }
 
-  return NextResponse.json({ user, vehicles: vehiclesWithQr });
+    const eligibility = await checkEligibility(vehicle.id);
+    
+    // Generate QR code dynamically
+    const qrData = JSON.stringify({ id: vehicle.id, regNo: vehicle.regNo, type: vehicle.vehicleType });
+    const qrCode = await QRCode.toDataURL(qrData, { width: 300, margin: 1 });
+
+    return NextResponse.json({
+      vehicle,
+      eligibility,
+      qrCode,
+    });
+  } catch (error) {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

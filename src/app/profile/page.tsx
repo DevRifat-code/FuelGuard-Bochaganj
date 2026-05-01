@@ -1,206 +1,165 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Download, IdCard, Fuel, ShieldCheck, FileText } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { User, QrCode, Shield, Fuel, Download } from "lucide-react";
 
 interface Vehicle {
   id: number;
   regNo: string;
   ownerName: string;
   phone: string;
-  nid: string;
-  licenseNo: string;
   vehicleType: string;
+  licenseNo: string;
+  nid: string;
   taxToken?: string;
-  qrCodeUrl: string;
-  createdAt: string;
+  qrCodeData?: string;
 }
 
-export default function OwnerProfilePage() {
-  const [user, setUser] = useState<any>(null);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+interface Eligibility {
+  eligible: boolean;
+  daysRemaining: number;
+  message: string;
+  threshold: number;
+}
+
+export default function ProfilePage() {
+  const router = useRouter();
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [eligibility, setEligibility] = useState<Eligibility | null>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadProfile = async () => {
+    const fetchProfile = async () => {
       try {
         const res = await fetch("/api/profile");
+        if (!res.ok) {
+          router.push("/login");
+          return;
+        }
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Profile load failed");
-        setUser(data.user);
-        setVehicles(data.vehicles || []);
-      } catch (err: any) {
-        setError(err.message);
+        setVehicle(data.vehicle);
+        setEligibility(data.eligibility);
+        setQrCodeUrl(data.qrCode);
+      } catch (e) {
+        router.push("/login");
       } finally {
         setLoading(false);
       }
     };
-    loadProfile();
-  }, []);
+    fetchProfile();
+  }, [router]);
 
-  const downloadCard = async (vehicle: Vehicle) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1050;
-    canvas.height = 660;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // Background
-    ctx.fillStyle = "#ecfdf5";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#064e3b";
-    ctx.fillRect(0, 0, canvas.width, 130);
-    ctx.fillStyle = "#047857";
-    ctx.fillRect(0, 130, canvas.width, 16);
-
-    // Header
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 44px Arial";
-    ctx.fillText("FuelGuard Vehicle Card", 48, 58);
-    ctx.font = "24px Arial";
-    ctx.fillText("Bochaganj UNO Office • Setabganj", 48, 96);
-
-    // Card fields
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 58px Arial";
-    ctx.fillText(vehicle.regNo, 48, 240);
-
-    ctx.font = "bold 28px Arial";
-    ctx.fillText("Owner", 48, 310);
-    ctx.font = "28px Arial";
-    ctx.fillText(vehicle.ownerName, 220, 310);
-
-    ctx.font = "bold 28px Arial";
-    ctx.fillText("Type", 48, 365);
-    ctx.font = "28px Arial";
-    ctx.fillText(vehicle.vehicleType === "motorcycle" ? "Motorcycle" : "Motor Vehicle", 220, 365);
-
-    ctx.font = "bold 28px Arial";
-    ctx.fillText("Phone", 48, 420);
-    ctx.font = "28px Arial";
-    ctx.fillText(vehicle.phone, 220, 420);
-
-    ctx.font = "bold 28px Arial";
-    ctx.fillText("License", 48, 475);
-    ctx.font = "28px Arial";
-    ctx.fillText(vehicle.licenseNo, 220, 475);
-
-    ctx.font = "bold 28px Arial";
-    ctx.fillText("Threshold", 48, 530);
-    ctx.font = "28px Arial";
-    ctx.fillStyle = "#dc2626";
-    ctx.fillText(vehicle.vehicleType === "motorcycle" ? "500 BDT / 7-day rule" : "2000 BDT / 7-day rule", 220, 530);
-
-    // QR
-    const qrImg = new Image();
-    qrImg.onload = () => {
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(720, 210, 270, 270);
-      ctx.drawImage(qrImg, 735, 225, 240, 240);
-      ctx.fillStyle = "#064e3b";
-      ctx.font = "bold 22px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("Scan at Fuel Station", 855, 505);
-      ctx.textAlign = "left";
-
-      ctx.fillStyle = "#334155";
-      ctx.font = "18px Arial";
-      ctx.fillText(`Issued: ${new Date(vehicle.createdAt).toLocaleDateString()}`, 48, 610);
-      ctx.fillText("If found, return to UNO Bochaganj Office", 600, 610);
-
-      const link = document.createElement("a");
-      link.download = `FuelGuard-Card-${vehicle.regNo}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    };
-    qrImg.src = vehicle.qrCodeUrl;
+  const downloadCard = () => {
+    window.print();
   };
 
-  if (loading) return <div className="max-w-5xl mx-auto px-6 py-16">Loading profile...</div>;
+  if (loading) {
+    return <div className="max-w-xl mx-auto py-20 text-center text-slate-600">Loading your profile...</div>;
+  }
 
-  if (error) {
-    return (
-      <div className="max-w-2xl mx-auto px-6 py-16">
-        <div className="card p-10 text-center">
-          <div className="text-red-600 font-semibold text-xl">{error}</div>
-          <p className="text-slate-600 mt-2">Please login as a vehicle owner to view your profile.</p>
-        </div>
-      </div>
-    );
+  if (!vehicle) {
+    return <div className="max-w-xl mx-auto py-20 text-center text-red-600">Vehicle data not found.</div>;
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <div className="mb-8 flex items-start justify-between">
+    <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="flex justify-between items-center mb-8 no-print">
         <div>
-          <div className="uppercase text-xs tracking-[3px] text-emerald-700 font-bold mb-2">Owner Profile</div>
-          <h1 className="text-4xl font-semibold">Welcome, {user?.fullName || user?.username}</h1>
-          <p className="text-slate-600 mt-1">আপনার Vehicle Card এখানে থেকে ডাউনলোড করতে পারবেন।</p>
+          <h1 className="text-3xl font-bold">Vehicle Owner Profile</h1>
+          <p className="text-slate-600">Download your digital fuel card &amp; monitoring status</p>
         </div>
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl px-5 py-3 flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5" /> Verified Owner Account
-        </div>
+        <button onClick={downloadCard} className="btn btn-primary gap-2 no-print">
+          <Download className="w-4 h-4" /> Print / Download Card
+        </button>
       </div>
 
-      {vehicles.length === 0 ? (
-        <div className="card p-10 text-center text-slate-600">No registered vehicle linked with this account.</div>
-      ) : (
-        <div className="grid lg:grid-cols-2 gap-8">
-          {vehicles.map((vehicle) => (
-            <div key={vehicle.id} className="card overflow-hidden">
-              <div className="bg-emerald-900 text-white p-6 flex items-center justify-between">
-                <div>
-                  <div className="text-xs uppercase tracking-widest text-emerald-200">Vehicle Registration Card</div>
-                  <div className="text-4xl font-bold font-mono mt-1">{vehicle.regNo}</div>
-                </div>
-                <IdCard className="w-12 h-12 text-emerald-200" />
+      <div className="grid md:grid-cols-3 gap-8">
+        {/* Left: Digital Card */}
+        <div className="md:col-span-2 space-y-6">
+          <div className="card border-2 border-emerald-600 p-6 bg-gradient-to-r from-emerald-50 to-white relative overflow-hidden">
+            <div className="absolute -right-12 -top-12 w-40 h-40 bg-emerald-600/10 rounded-full flex items-center justify-center pointer-events-none">
+              <Fuel className="w-24 h-24 text-emerald-600/20" />
+            </div>
+
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <div className="text-[10px] font-bold tracking-[2px] text-emerald-800 uppercase">FuelGuard Digital Card</div>
+                <div className="font-mono text-3xl font-black mt-1 text-emerald-950">{vehicle.regNo}</div>
               </div>
-
-              <div className="p-7">
-                <div className="grid grid-cols-2 gap-4 text-sm mb-6">
-                  <div>
-                    <div className="text-slate-500">Owner</div>
-                    <div className="font-semibold">{vehicle.ownerName}</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-500">Vehicle Type</div>
-                    <div className="font-semibold">{vehicle.vehicleType === "motorcycle" ? "Motorcycle" : "Motor Vehicle"}</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-500">Phone</div>
-                    <div className="font-semibold">{vehicle.phone}</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-500">License</div>
-                    <div className="font-semibold">{vehicle.licenseNo}</div>
-                  </div>
-                </div>
-
-                <div className="flex gap-6 items-center bg-slate-50 rounded-2xl p-5 mb-6">
-                  <img src={vehicle.qrCodeUrl} alt="Vehicle QR" className="w-32 h-32 rounded-xl border bg-white" />
-                  <div>
-                    <div className="font-semibold flex items-center gap-2"><Fuel className="w-4 h-4 text-emerald-700" /> QR Fuel Access</div>
-                    <p className="text-sm text-slate-600 mt-1">Pump manager এই QR scan করে eligibility check করবে।</p>
-                    <div className="text-xs mt-3 text-red-600 font-medium">
-                      Limit: {vehicle.vehicleType === "motorcycle" ? "500 BDT" : "2000 BDT"} হলে ৭ দিনের block
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <button onClick={() => downloadCard(vehicle)} className="btn btn-primary flex-1">
-                    <Download className="w-4 h-4" /> Download Card
-                  </button>
-                  <button onClick={() => window.print()} className="btn btn-secondary">
-                    <FileText className="w-4 h-4" /> Print
-                  </button>
+              <div className="text-right">
+                <div className="text-xs font-semibold px-2.5 py-1 bg-emerald-700 text-white rounded">
+                  {vehicle.vehicleType === "motorcycle" ? "MOTORCYCLE" : "MOTOR VEHICLE"}
                 </div>
               </div>
             </div>
-          ))}
+
+            <div className="grid grid-cols-2 gap-4 text-sm mt-8 border-t pt-4 border-emerald-100">
+              <div>
+                <div className="text-slate-500 text-xs">Owner Name</div>
+                <div className="font-semibold text-slate-800">{vehicle.ownerName}</div>
+              </div>
+              <div>
+                <div className="text-slate-500 text-xs">Mobile Number</div>
+                <div className="font-semibold text-slate-800">{vehicle.phone}</div>
+              </div>
+              <div>
+                <div className="text-slate-500 text-xs">License Number</div>
+                <div className="font-semibold text-slate-800">{vehicle.licenseNo}</div>
+              </div>
+              <div>
+                <div className="text-slate-500 text-xs">NID Number</div>
+                <div className="font-semibold text-slate-800">{vehicle.nid}</div>
+              </div>
+            </div>
+
+            <div className="mt-6 text-[10px] text-slate-400 text-center border-t border-dashed pt-3">
+              UNO Setabganj • Bochaganj Upazila Nirbahi Office
+            </div>
+          </div>
+
+          {/* Eligibility Status */}
+          {eligibility && (
+            <div className={`card p-6 border-l-8 ${eligibility.eligible ? "border-emerald-600 bg-emerald-50/50" : "border-red-600 bg-red-50/50"}`}>
+              <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+                <Shield className={eligibility.eligible ? "text-emerald-700" : "text-red-700"} />
+                বর্তমান অবস্থা (Current Status)
+              </h3>
+              <p className="text-slate-800 text-sm">{eligibility.message}</p>
+              {!eligibility.eligible && eligibility.daysRemaining > 0 && (
+                <div className="mt-3 text-xs font-semibold text-red-800">
+                  বাকি আছে: {eligibility.daysRemaining} দিন
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Right: QR Code */}
+        <div className="card p-6 flex flex-col items-center justify-center">
+          <h3 className="font-semibold text-sm text-slate-600 mb-4 text-center">Scan QR at the Pump</h3>
+          {qrCodeUrl ? (
+            <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48 border-4 border-slate-100 p-1 rounded-xl" />
+          ) : (
+            <div className="w-48 h-48 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 text-xs text-center p-4">
+              Generating QR Code...
+            </div>
+          )}
+          <p className="text-[10px] text-slate-500 mt-4 text-center">আপনার ডিজিটাল কার্ডে দ্রুত অ্যাক্সেস পেতে এটি ব্যবহার করুন।</p>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          body {
+            background: white !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

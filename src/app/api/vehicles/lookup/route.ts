@@ -4,6 +4,8 @@ import { vehicles, fuelLogs } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { checkEligibility } from "@/lib/fuel";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const regNo = searchParams.get("regNo");

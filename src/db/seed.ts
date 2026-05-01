@@ -50,21 +50,8 @@ async function seed() {
   const insertedManagers = await db.insert(users).values(managerData).returning();
   console.log(`✅ Created ${insertedManagers.length} pump managers`);
 
-  // Sample owner account
-  const ownerPass = await bcrypt.hash("owner123", 10);
-  const ownerUser = await db.insert(users).values({
-    username: "owner_karim",
-    passwordHash: ownerPass,
-    role: "owner",
-    fullName: "Md. Karim Hossain",
-    phone: "01712-345678",
-    stationId: null,
-  }).returning();
-  console.log("✅ Owner account created: owner_karim / owner123");
-
   // Sample Vehicle - Motorcycle
   const sampleVehicle = await db.insert(vehicles).values({
-    ownerUserId: ownerUser[0].id,
     regNo: "SET-4521",
     ownerName: "Md. Karim Hossain",
     phone: "01712-345678",
@@ -80,18 +67,8 @@ async function seed() {
   }).returning();
   console.log(`✅ Sample motorcycle created: ${sampleVehicle[0].regNo}`);
 
-  const ownerUser2 = await db.insert(users).values({
-    username: "owner_fatema",
-    passwordHash: ownerPass,
-    role: "owner",
-    fullName: "Fatema Begum",
-    phone: "01987-654321",
-    stationId: null,
-  }).returning();
-
   // Sample Motor Vehicle
   await db.insert(vehicles).values({
-    ownerUserId: ownerUser2[0].id,
     regNo: "SET-8834",
     ownerName: "Fatema Begum",
     phone: "01987-654321",
@@ -110,7 +87,6 @@ async function seed() {
   console.log("\n🎉 Seeding complete!");
   console.log("🔑 Admin Login: uno_admin / admin123");
   console.log("🔑 Manager Login: Use any manager_... / manager123 (e.g. manager_bakultala_fuel_station)");
-  console.log("🔑 Owner Login: owner_karim / owner123");
   console.log("🚗 Vehicles: SET-4521 (motorcycle), SET-8834 (car)");
 
   await pool.end();

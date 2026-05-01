@@ -4,6 +4,8 @@ import { fuelLogs } from "@/db/schema";
 import { desc } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const user = await getCurrentUser();
   if (!user || user.role !== "admin") {
@@ -16,18 +18,16 @@ export async function GET() {
     with: {
       vehicle: true,
       station: true,
-      manager: true,
     },
   });
 
-  const formatted = logs.map((log) => ({
-    id: log.id,
-    amountBdt: log.amountBdt,
-    fuelType: log.fuelType,
-    timestamp: log.timestamp,
-    vehicleReg: log.vehicle?.regNo,
-    stationName: log.station?.name,
-    managerName: log.manager?.username,
+  const formatted = logs.map(l => ({
+    id: l.id,
+    amountBdt: l.amountBdt,
+    fuelType: l.fuelType,
+    timestamp: l.timestamp,
+    vehicleReg: l.vehicle?.regNo,
+    stationName: l.station?.name,
   }));
 
   return NextResponse.json({ logs: formatted });

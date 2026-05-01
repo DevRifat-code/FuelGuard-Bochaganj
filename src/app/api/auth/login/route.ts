@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { login } from "@/lib/auth";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
@@ -18,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     // Create and set session cookie
     const { createSession } = await import("@/lib/auth");
-    const token = await createSession(result.user.id);
+    const token = await createSession(result.user.id, result.user.role === "user");
     
     const cookieStore = await cookies();
     cookieStore.set("session", token, {

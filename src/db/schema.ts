@@ -2,7 +2,7 @@ import { pgTable, serial, text, integer, timestamp, pgEnum } from "drizzle-orm/p
 import { relations } from "drizzle-orm";
 
 export const vehicleTypeEnum = pgEnum("vehicle_type", ["motorcycle", "motor_vehicle"]);
-export const roleEnum = pgEnum("role", ["admin", "manager", "owner"]);
+export const roleEnum = pgEnum("role", ["admin", "manager"]);
 export const fuelTypeEnum = pgEnum("fuel_type", ["petrol", "octane"]);
 
 export const stations = pgTable("stations", {
@@ -17,15 +17,12 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: roleEnum("role").notNull(),
-  fullName: text("full_name"),
-  phone: text("phone"),
   stationId: integer("station_id").references(() => stations.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const vehicles = pgTable("vehicles", {
   id: serial("id").primaryKey(),
-  ownerUserId: integer("owner_user_id").references(() => users.id),
   regNo: text("reg_no").notNull().unique(),
   ownerName: text("owner_name").notNull(),
   phone: text("phone").notNull(),
@@ -38,6 +35,8 @@ export const vehicles = pgTable("vehicles", {
   licensePhoto: text("license_photo"),
   taxTokenPhoto: text("tax_token_photo"),
   qrCodeData: text("qr_code_data"),
+  username: text("username").unique(),
+  passwordHash: text("password_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -62,15 +61,10 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.stationId],
     references: [stations.id],
   }),
-  ownedVehicles: many(vehicles),
   fuelLogs: many(fuelLogs),
 }));
 
-export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
-  owner: one(users, {
-    fields: [vehicles.ownerUserId],
-    references: [users.id],
-  }),
+export const vehiclesRelations = relations(vehicles, ({ many }) => ({
   fuelLogs: many(fuelLogs),
 }));
 
