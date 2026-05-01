@@ -1,34 +1,29 @@
-import { db } from "@/db";
-import { fuelLogs, vehicles } from "@/db/schema";
-import { eq, and, gte, desc } from "drizzle-orm";
-import { differenceInDays } from "date-fns";
+import {
+  getVehicleByRegNo,
+  getRecentHighFuelLogs,
+  createFuelLog,
+  getFuelLogsForVehicle,
+  type FirestoreVehicle,
+  type FirestoreFuelLog,
+} from "./firestore"
+import { differenceInDays } from "date-fns"
 
-/**
- * Core Calculation Function: Checks if a vehicle is eligible for fuel.
- * Implements the 7-day blocking rule based on fuel thresholds.
- * 
- * Logic (in Bengali explanation):
- * - মোটরসাইকেল: ৫০০ টাকা বা তার বেশি জ্বালানি নিলে ৭ দিন ব্লক।
- * - মোটর ভেহিকল: ২০০০ টাকা বা তার বেশি জ্বালানি নিলে ৭ দিন ব্লক।
- * - ব্লক চলাকালীন চেষ্টা করলে Pump Manager-কে Red Alert দেখানো হয়।
- */
 export interface EligibilityResult {
-  eligible: boolean;
-  daysRemaining: number;
-  message: string;
-  threshold: number;
+  eligible: boolean
+  daysRemaining: number
+  message: string
+  threshold: number
   lastHighFuel?: {
-    amountBdt: number;
-    timestamp: Date;
-    fuelType: string;
-  };
-  vehicleType: string;
+    amountBdt: number
+    timestamp: Date
+    fuelType: string
+  }
+  vehicleType: string
+  vehicleId?: string
 }
 
-export async function checkEligibility(vehicleId: number): Promise<EligibilityResult> {
-  const vehicle = await db.query.vehicles.findFirst({
-    where: eq(vehicles.id, vehicleId),
-  });
+export async function checkEligibility(vehicleId: string): Promise<EligibilityResult> {
+  const vehicle = await getVehicleById(vehicleId)
 
   if (!vehicle) {
     return {
@@ -37,27 +32,21 @@ export async function checkEligibility(vehicleId: number): Promise<EligibilityRe
       message: "যানবাহন খুঁজে পাওয়া যায়নি।",
       threshold: 0,
       vehicleType: "",
-    };
+    }
   }
 
-  const threshold = vehicle.vehicleType === "motorcycle" ? 500 : 2000;
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const threshold = vehicle.vehicleType === "motorcycle" ? 500 : 2000
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
-  // Find the most recent high-value fuel log in the last 7 days
-  const recentHighLog = await db.query.fuelLogs.findFirst({
-    where: and(
-      eq(fuelLogs.vehicleId, vehicleId),
-      gte(fuelLogs.amountBdt, threshold),
-      gte(fuelLogs.timestamp, sevenDaysAgo)
-    ),
-    orderBy: desc(fuelLogs.timestamp),
-  });
+  const recentLogs = await getRecentHighFuelLogs(vehicleId, threshold, sevenDaysAgo)
+  const recentHighLog = recentLogs.length > 0 ? recentLogs[0] : null
 
-  if (recentHighLog) {
-    const daysSince = differenceInDays(new Date(), new Date(recentHighLog.timestamp));
-    const daysRemaining = Math.max(0, 7 - daysSince);
+  if (recentHighLog && recentHighLog.timestamp) {
+    const logDate = recentHighLog.timestamp.toDate()
+    const daysSince = differenceInDays(new Date(), logDate)
+    const daysRemaining = Math.max(0, 7 - daysSince)
 
-    const banglaMessage = `এই ${vehicle.vehicleType === "motorcycle" ? "মোটরসাইকেল" : "মোটর ভেহিকল"}টি গত ${daysSince} দিন আগে ${recentHighLog.amountBdt} টাকার জ্বালানি নিয়েছে। বর্তমানে ${daysRemaining} দিনের ব্লক চলছে।`;
+    const banglaMessage = `এই ${vehicle.vehicleType === "motorcycle" ? "মোটরসাইকেল" : "মোটর ভেহিকল"}টি গত ${daysSince} দিন আগে ${recentHighLog.amountBdt} টাকার জ্বালানি নিয়েছে। বর্তমানে ${daysRemaining} দিনের ব্লক চলছে।`
 
     return {
       eligible: false,
@@ -66,11 +55,12 @@ export async function checkEligibility(vehicleId: number): Promise<EligibilityRe
       threshold,
       lastHighFuel: {
         amountBdt: recentHighLog.amountBdt,
-        timestamp: recentHighLog.timestamp,
+        timestamp: logDate,
         fuelType: recentHighLog.fuelType,
       },
       vehicleType: vehicle.vehicleType,
-    };
+      vehicleId: vehicle.id,
+    }
   }
 
   return {
@@ -79,26 +69,36 @@ export async function checkEligibility(vehicleId: number): Promise<EligibilityRe
     message: `যানবাহনটি জ্বালানি নেওয়ার জন্য যোগ্য। (সীমা: ${threshold} টাকা)`,
     threshold,
     vehicleType: vehicle.vehicleType,
-  };
+    vehicleId: vehicle.id,
+  }
 }
 
-/**
- * Record a fuel transaction. If amount >= threshold, it will automatically trigger the 7-day block for future attempts.
- */
+async function getVehicleById(id: string): Promise<FirestoreVehicle | null> {
+  const { getDoc, doc } = await import("firebase/firestore")
+  const { db } = await import("./firebase")
+  const snap = await getDoc(doc(db, "vehicles", id))
+  if (!snap.exists()) return null
+  return { id: snap.id, ...snap.data() } as FirestoreVehicle
+}
+
 export async function recordFuelLog(
-  vehicleId: number,
-  stationId: number,
+  vehicleId: string,
+  stationId: string,
   amountBdt: number,
   fuelType: "petrol" | "octane",
-  managerId: number
+  managerId: string
 ) {
-  const result = await db.insert(fuelLogs).values({
+  const id = await createFuelLog({
     vehicleId,
     stationId,
     amountBdt,
     fuelType,
     managerId,
-  }).returning();
+  })
 
-  return result[0];
+  const { getDoc, doc } = await import("firebase/firestore")
+  const { db } = await import("./firebase")
+  const logSnap = await getDoc(doc(db, "fuelLogs", id))
+
+  return { id, ...logSnap.data() }
 }

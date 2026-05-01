@@ -1,46 +1,48 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db";
-import { vehicles, fuelLogs } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
-import { checkEligibility } from "@/lib/fuel";
+import { NextRequest, NextResponse } from "next/server"
+import { getVehicleByRegNo, getFuelLogsForVehicle } from "@/lib/firestore"
+import { checkEligibility } from "@/lib/fuel"
+import { getDoc, doc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const regNo = searchParams.get("regNo");
-  const id = searchParams.get("id");
+  const { searchParams } = new URL(request.url)
+  const regNo = searchParams.get("regNo")
+  const id = searchParams.get("id")
 
   if (!regNo && !id) {
-    return NextResponse.json({ error: "Provide regNo or id" }, { status: 400 });
+    return NextResponse.json({ error: "Provide regNo or id" }, { status: 400 })
   }
 
   try {
-    let vehicle;
+    let vehicle
     if (id) {
-      vehicle = await db.query.vehicles.findFirst({ where: eq(vehicles.id, parseInt(id)) });
+      const snap = await getDoc(doc(db, "vehicles", id))
+      if (snap.exists()) {
+        vehicle = { id: snap.id, ...snap.data() }
+      }
     } else {
-      vehicle = await db.query.vehicles.findFirst({ where: eq(vehicles.regNo, regNo!.toUpperCase()) });
+      vehicle = await getVehicleByRegNo(regNo!.toUpperCase())
     }
 
     if (!vehicle) {
-      return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
+      return NextResponse.json({ error: "Vehicle not found" }, { status: 404 })
     }
 
-    const eligibility = await checkEligibility(vehicle.id);
+    const vehicleId = vehicle.id as string
+    const eligibility = await checkEligibility(vehicleId)
 
-    // Get recent logs
-    const recentLogs = await db.query.fuelLogs.findMany({
-      where: eq(fuelLogs.vehicleId, vehicle.id),
-      orderBy: desc(fuelLogs.timestamp),
-      limit: 5,
-      with: { station: true },
-    });
+    const recentLogs = await getFuelLogsForVehicle(vehicleId)
+    const logs = recentLogs.slice(0, 5).map(log => ({
+      ...log,
+      timestamp: log.timestamp?.toDate(),
+    }))
 
     return NextResponse.json({
       vehicle,
       eligibility,
-      recentLogs,
-    });
+      recentLogs: logs,
+    })
   } catch (error) {
-    return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
+    return NextResponse.json({ error: "Lookup failed" }, { status: 500 })
   }
 }
