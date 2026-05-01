@@ -32,7 +32,7 @@ export interface FirestoreUser {
 export async function getUsersByField(field: string, value: string): Promise<FirestoreUser[]> {
   const q = query(collection(db, "users"), where(field, "==", value))
   const snap = await getDocs(q)
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestoreUser))
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }) as FirestoreUser)
 }
 
 export async function getUserById(id: string): Promise<FirestoreUser | null> {
@@ -120,7 +120,7 @@ export async function getRecentHighFuelLogs(
   )
   const snap = await getDocs(q)
   return snap.docs
-    .map(d => ({ id: d.id, ...d.data() } as FirestoreFuelLog))
+    .map(d => ({ id: d.id, ...d.data() }) as FirestoreFuelLog)
     .filter(log => log.amountBdt >= threshold && log.timestamp && log.timestamp.toDate() >= since)
     .slice(0, 1)
 }
@@ -132,7 +132,7 @@ export async function getFuelLogsForVehicle(vehicleId: string): Promise<Firestor
     orderBy("timestamp", "desc")
   )
   const snap = await getDocs(q)
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestoreFuelLog))
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }) as FirestoreFuelLog)
 }
 
 // ============ STATIONS ============
@@ -144,7 +144,7 @@ export interface FirestoreStation {
 
 export async function getStations(): Promise<FirestoreStation[]> {
   const snap = await getDocs(collection(db, "stations"))
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestoreStation))
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }) as FirestoreStation)
 }
 
 export async function createStation(data: Omit<FirestoreStation, "id">): Promise<string> {

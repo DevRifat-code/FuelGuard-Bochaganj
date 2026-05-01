@@ -74,7 +74,7 @@ export async function checkEligibility(vehicleId: string): Promise<EligibilityRe
 }
 
 async function getVehicleById(id: string): Promise<FirestoreVehicle | null> {
-  const { getDoc, doc } = await import("firebase/firestore")
+  const { doc, getDoc } = await import("firebase/firestore")
   const { db } = await import("./firebase")
   const snap = await getDoc(doc(db, "vehicles", id))
   if (!snap.exists()) return null
@@ -96,7 +96,7 @@ export async function recordFuelLog(
     managerId,
   })
 
-  const { getDoc, doc } = await import("firebase/firestore")
+  const { doc, getDoc } = await import("firebase/firestore")
   const { db } = await import("./firebase")
   const logSnap = await getDoc(doc(db, "fuelLogs", id))
 
