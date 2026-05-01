@@ -61,11 +61,11 @@ export function Header() {
           {!loading && user && (
             <div className="flex items-center gap-4">
               <Link 
-                href={user.role === "admin" ? "/admin" : "/manager"} 
+                href={user.role === "admin" ? "/admin" : user.role === "manager" ? "/manager" : "/profile"} 
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
               >
                 <Shield className="w-4 h-4" />
-                {user.role === "admin" ? "Admin Dashboard" : "Manager Dashboard"}
+                {user.role === "admin" ? "Admin Dashboard" : user.role === "manager" ? "Manager Dashboard" : "My Profile"}
               </Link>
               <div className="flex items-center gap-2 text-sm text-slate-600">
                 <User className="w-4 h-4" />

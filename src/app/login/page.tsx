@@ -97,6 +97,7 @@ export default function LoginPage() {
           <div>Demo Credentials:</div>
           <div><span className="font-mono">uno_admin</span> / <span className="font-mono">admin123</span> — UNO Admin</div>
           <div><span className="font-mono">manager_bakultala...</span> / <span className="font-mono">manager123</span> — Any Manager</div>
+          <div><span className="font-mono">owner_karim</span> / <span className="font-mono">owner123</span> — Vehicle Owner</div>
         </div>
       </div>
     </div>

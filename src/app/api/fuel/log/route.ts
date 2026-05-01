@@ -4,8 +4,6 @@ import { fuelLogs } from "@/db/schema";
 import { recordFuelLog, checkEligibility } from "@/lib/fuel";
 import { getCurrentUser } from "@/lib/auth";
 
-export const dynamic = "force-dynamic";
-
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user || user.role !== "manager") {
