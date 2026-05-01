@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seed Firebase Data</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+</head>
+<body>
+  <div style="max-width: 500px; margin: 50px auto; font-family: Arial;">
+    <h1>Seed Demo Data</h1>
+    <div id="status">Click button to seed data...</div>
+    <button onclick="seed()" id="btn" style="padding: 10px 20px; margin-top: 20px; cursor: pointer;">
+      Seed Demo Data
+    </button>
+    <div id="result" style="margin-top: 20px; color: green;"></div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBnLN4HprmXCfCOh4IIfIoeoA8WJpIo9kA",
+      authDomain: "fuelguard-bochaganj.firebaseapp.com",
+      projectId: "fuelguard-bochaganj",
+      storageBucket: "fuelguard-bochaganj.firebasestorage.app",
+      messagingSenderId: "1060481740844",
+      appId: "1:1060481740844:web:caf45fadbce72459962189"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(app);
+
+    async function seed() {
+      const status = document.getElementById('status');
+      const result = document.getElementById('result');
+      const btn = document.getElementById('btn');
+      
+      btn.disabled = true;
+      status.textContent = 'Hashing passwords...';
+      
+      try {
+        const bcrypt = dcodeIO.bcrypt;
+        
+        const adminHash = bcrypt.hashSync('admin123', 10);
+        const managerHash = bcrypt.hashSync('manager123', 10);
+        const ownerHash = bcrypt.hashSync('owner123', 10);
+        
+        status.textContent = 'Creating admin...';
+        
+        // Check admin
+        const adminSnap = await db.collection('users').where('username', '==', 'uno_admin@gmail.com').get();
+        if (adminSnap.empty) {
+          await db.collection('users').add({
+            username: 'uno_admin@gmail.com',
+            passwordHash: adminHash,
+            role: 'admin',
+            fullName: 'UNO Admin',
+            phone: '01700000000',
+            stationId: null,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          status.textContent = '✓ Admin created';
+        } else {
+          status.textContent = '✓ Admin exists';
+        }
+        
+        // Check manager
+        const managerSnap = await db.collection('users').where('username', '==', 'manager_bakultala').get();
+        let ownerId;
+        
+        if (managerSnap.empty) {
+          await db.collection('users').add({
+            username: 'manager_bakultala',
+            passwordHash: managerHash,
+            role: 'manager',
+            fullName: 'Manager Bakultala',
+            phone: '01711111111',
+            stationId: 'bakultala-station',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          status.textContent = '✓ Manager created';
+        } else {
+          status.textContent = '✓ Manager exists';
+        }
+        
+        // Check owner
+        const ownerSnap = await db.collection('users').where('username', '==', 'owner_karim').get();
+        
+        if (ownerSnap.empty) {
+          const ownerRef = await db.collection('users').add({
+            username: 'owner_karim',
+            passwordHash: ownerHash,
+            role: 'owner',
+            fullName: 'Karim Uddin',
+            phone: '01722222222',
+            stationId: null,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          ownerId = ownerRef.id;
+          status.textContent = '✓ Owner created';
+        } else {
+          ownerId = ownerSnap.docs[0].id;
+          status.textContent = '✓ Owner exists';
+        }
+        
+        // Check station
+        const stationSnap = await db.collection('stations').where('name', '==', 'Bakultala Fuel Station').get();
+        
+        if (stationSnap.empty) {
+          await db.collection('stations').add({
+            name: 'Bakultala Fuel Station',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          status.textContent = '✓ Station created';
+        } else {
+          status.textContent = '✓ Station exists';
+        }
+        
+        // Check vehicle
+        const vehicleSnap = await db.collection('vehicles').where('regNo', '==', 'DHA-123456').get();
+        
+        if (vehicleSnap.empty) {
+          await db.collection('vehicles').add({
+            ownerUserId: ownerId,
+            regNo: 'DHA-123456',
+            ownerName: 'Karim Uddin',
+            phone: '01722222222',
+            nid: '1234567890123',
+            licenseNo: 'DL-789012',
+            vehicleType: 'motorcycle',
+            taxToken: 'TXN-12345',
+            passportPhoto: null,
+            nidPhoto: null,
+            licensePhoto: null,
+            taxTokenPhoto: null,
+            qrCodeData: JSON.stringify({ regNo: 'DHA-123456', vehicleType: 'motorcycle' }),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          status.textContent = '✓ Vehicle created';
+        } else {
+          status.textContent = '✓ Vehicle exists';
+        }
+        
+        result.innerHTML = '✅ <b>Seed complete!</b><br><br>' +
+          'Demo Credentials:<br>' +
+          '1. uno_admin@gmail.com / admin123<br>' +
+          '2. manager_bakultala / manager123<br>' +
+          '3. owner_karim / owner123<br>' +
+          'Vehicle: DHA-123456';
+        
+        btn.textContent = 'Done!';
+        
+      } catch (error) {
+        status.textContent = 'Error: ' + error.message;
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
