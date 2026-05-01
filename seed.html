@@ -2,20 +2,21 @@
 <html>
 <head>
   <title>Seed Firebase Data</title>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
 </head>
 <body>
   <div style="max-width: 500px; margin: 50px auto; font-family: Arial;">
     <h1>Seed Demo Data</h1>
-    <div id="status">Click button to seed data...</div>
-    <button onclick="seed()" id="btn" style="padding: 10px 20px; margin-top: 20px; cursor: pointer;">
+    <div id="status">Loading Firebase...</div>
+    <button onclick="seed()" id="btn" style="padding: 10px 20px; margin-top: 20px; cursor: pointer;" disabled>
       Seed Demo Data
     </button>
     <div id="result" style="margin-top: 20px; color: green;"></div>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+  
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBnLN4HprmXCfCOh4IIfIoeoA8WJpIo9kA",
@@ -26,8 +27,16 @@
       appId: "1:1060481740844:web:caf45fadbce72459962189"
     };
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore(app);
+    let db;
+    
+    try {
+      const app = firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore(app);
+      document.getElementById('status').textContent = 'Ready to seed data...';
+      document.getElementById('btn').disabled = false;
+    } catch(e) {
+      document.getElementById('status').textContent = 'Error: ' + e.message;
+    }
 
     async function seed() {
       const status = document.getElementById('status');
@@ -46,7 +55,6 @@
         
         status.textContent = 'Creating admin...';
         
-        // Check admin
         const adminSnap = await db.collection('users').where('username', '==', 'uno_admin@gmail.com').get();
         if (adminSnap.empty) {
           await db.collection('users').add({
@@ -58,12 +66,9 @@
             stationId: null,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
-          status.textContent = '✓ Admin created';
-        } else {
-          status.textContent = '✓ Admin exists';
         }
+        status.textContent = '✓ Admin ready';
         
-        // Check manager
         const managerSnap = await db.collection('users').where('username', '==', 'manager_bakultala').get();
         let ownerId;
         
@@ -77,12 +82,9 @@
             stationId: 'bakultala-station',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
-          status.textContent = '✓ Manager created';
-        } else {
-          status.textContent = '✓ Manager exists';
         }
+        status.textContent = '✓ Manager ready';
         
-        // Check owner
         const ownerSnap = await db.collection('users').where('username', '==', 'owner_karim').get();
         
         if (ownerSnap.empty) {
@@ -96,13 +98,11 @@
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
           ownerId = ownerRef.id;
-          status.textContent = '✓ Owner created';
         } else {
           ownerId = ownerSnap.docs[0].id;
-          status.textContent = '✓ Owner exists';
         }
+        status.textContent = '✓ Owner ready';
         
-        // Check station
         const stationSnap = await db.collection('stations').where('name', '==', 'Bakultala Fuel Station').get();
         
         if (stationSnap.empty) {
@@ -110,12 +110,9 @@
             name: 'Bakultala Fuel Station',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
-          status.textContent = '✓ Station created';
-        } else {
-          status.textContent = '✓ Station exists';
         }
+        status.textContent = '✓ Station ready';
         
-        // Check vehicle
         const vehicleSnap = await db.collection('vehicles').where('regNo', '==', 'DHA-123456').get();
         
         if (vehicleSnap.empty) {
@@ -135,9 +132,6 @@
             qrCodeData: JSON.stringify({ regNo: 'DHA-123456', vehicleType: 'motorcycle' }),
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
-          status.textContent = '✓ Vehicle created';
-        } else {
-          status.textContent = '✓ Vehicle exists';
         }
         
         result.innerHTML = '✅ <b>Seed complete!</b><br><br>' +
@@ -146,8 +140,8 @@
           '2. manager_bakultala / manager123<br>' +
           '3. owner_karim / owner123<br>' +
           'Vehicle: DHA-123456';
-        
-        btn.textContent = 'Done!';
+        status.textContent = '✅ All done!';
+        btn.textContent = 'Completed!';
         
       } catch (error) {
         status.textContent = 'Error: ' + error.message;
