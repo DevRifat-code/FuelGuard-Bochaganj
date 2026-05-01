@@ -1,9 +1,14 @@
-const bcrypt = require('bcryptjs')
-const { initializeApp, getApps, cert } = require('firebase-admin/app')
-const { getFirestore, collection, addDoc, getDocs, query, where, Timestamp } = require('firebase-admin/firestore')
+import bcrypt from 'bcryptjs'
+import { initializeApp, getApps, cert } from 'firebase-admin/app'
+import { getFirestore } from 'firebase-admin/firestore'
+import * as dotenv from 'dotenv'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 
-// Load env vars
-require('dotenv').config({ path: '../.env.local' })
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+dotenv.config({ path: join(__dirname, '../.env.local') })
 
 const serviceAccount = {
   projectId: process.env.FIREBASE_PROJECT_ID,
@@ -23,7 +28,6 @@ async function seed() {
   try {
     console.log('Seeding demo data...')
     
-    // Hash passwords
     const adminHash = await bcrypt.hash('admin123', 10)
     const managerHash = await bcrypt.hash('manager123', 10)
     const ownerHash = await bcrypt.hash('owner123', 10)
@@ -31,60 +35,55 @@ async function seed() {
     console.log('Passwords hashed')
     
     // Check if admin exists
-    const adminQuery = query(collection(db, 'users'), where('username', '==', 'uno_admin@gmail.com'))
-    const adminSnap = await getDocs(adminQuery)
+    const adminSnap = await db.collection('users').where('username', '==', 'uno_admin@gmail.com').get()
     
     if (adminSnap.empty) {
       console.log('Creating admin user...')
-      await addDoc(collection(db, 'users'), {
+      await db.collection('users').add({
         username: 'uno_admin@gmail.com',
         passwordHash: adminHash,
         role: 'admin',
         fullName: 'UNO Admin',
         phone: '01700000000',
         stationId: null,
-        createdAt: Timestamp.now()
+        createdAt: new Date()
       })
       console.log('✓ Admin user created')
     } else {
       console.log('Admin user already exists')
     }
     
-    // Check if manager exists
-    const managerQuery = query(collection(db, 'users'), where('username', '==', 'manager_bakultala'))
-    const managerSnap = await getDocs(managerQuery)
+    const managerSnap = await db.collection('users').where('username', '==', 'manager_bakultala').get()
     
     if (managerSnap.empty) {
       console.log('Creating manager user...')
-      await addDoc(collection(db, 'users'), {
+      await db.collection('users').add({
         username: 'manager_bakultala',
         passwordHash: managerHash,
         role: 'manager',
         fullName: 'Manager Bakultala',
         phone: '01711111111',
         stationId: 'bakultala-station',
-        createdAt: Timestamp.now()
+        createdAt: new Date()
       })
       console.log('✓ Manager user created')
     } else {
       console.log('Manager user already exists')
     }
     
-    // Check if owner exists
-    const ownerQuery = query(collection(db, 'users'), where('username', '==', 'owner_karim'))
-    const ownerSnap = await getDocs(ownerQuery)
+    const ownerSnap = await db.collection('users').where('username', '==', 'owner_karim').get()
     
     let ownerId
     if (ownerSnap.empty) {
       console.log('Creating owner user...')
-      const ownerRef = await addDoc(collection(db, 'users'), {
+      const ownerRef = await db.collection('users').add({
         username: 'owner_karim',
         passwordHash: ownerHash,
         role: 'owner',
         fullName: 'Karim Uddin',
         phone: '01722222222',
         stationId: null,
-        createdAt: Timestamp.now()
+        createdAt: new Date()
       })
       ownerId = ownerRef.id
       console.log('✓ Owner user created:', ownerId)
@@ -93,28 +92,24 @@ async function seed() {
       console.log('Owner user already exists:', ownerId)
     }
     
-    // Create station if not exists
-    const stationQuery = query(collection(db, 'stations'), where('name', '==', 'Bakultala Fuel Station'))
-    const stationSnap = await getDocs(stationQuery)
+    const stationSnap = await db.collection('stations').where('name', '==', 'Bakultala Fuel Station').get()
     
     if (stationSnap.empty) {
       console.log('Creating station...')
-      await addDoc(collection(db, 'stations'), {
+      await db.collection('stations').add({
         name: 'Bakultala Fuel Station',
-        createdAt: Timestamp.now()
+        createdAt: new Date()
       })
       console.log('✓ Station created')
     } else {
       console.log('Station already exists')
     }
     
-    // Create vehicle if not exists
-    const vehicleQuery = query(collection(db, 'vehicles'), where('regNo', '==', 'DHA-123456'))
-    const vehicleSnap = await getDocs(vehicleQuery)
+    const vehicleSnap = await db.collection('vehicles').where('regNo', '==', 'DHA-123456').get()
     
     if (vehicleSnap.empty) {
       console.log('Creating vehicle...')
-      await addDoc(collection(db, 'vehicles'), {
+      await db.collection('vehicles').add({
         ownerUserId: ownerId,
         regNo: 'DHA-123456',
         ownerName: 'Karim Uddin',
@@ -128,7 +123,7 @@ async function seed() {
         licensePhoto: null,
         taxTokenPhoto: null,
         qrCodeData: JSON.stringify({ regNo: 'DHA-123456', vehicleType: 'motorcycle' }),
-        createdAt: Timestamp.now()
+        createdAt: new Date()
       })
       console.log('✓ Vehicle created')
     } else {
